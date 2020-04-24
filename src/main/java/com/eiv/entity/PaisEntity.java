@@ -1,13 +1,17 @@
 package com.eiv.entity;
 
+import java.io.Serializable;
+
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "paises")
-public class PaisEntity {
+public class PaisEntity implements Serializable {
 
+    private static final long serialVersionUID = -8555442095663748853L;
+    
     @Id
     private long id;
     private String nombre;
