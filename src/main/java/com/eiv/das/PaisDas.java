@@ -33,8 +33,8 @@ public class PaisDas {
     @Transactional
     public PaisEntity create(PaisFrm pais, long delay) {
         
-        // long id = paisRepository.getMax().orElse(0L) + 1L;
-        // LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
+        long id = paisRepository.getMax().orElse(0L) + 1L;
+        LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
         
         if (delay > 0) {
             try {
@@ -49,9 +49,9 @@ public class PaisDas {
         PaisEntity paisEntity = new PaisEntity();
         paisEntity.setNombre(pais.getNombre());
         
-        long id = paisRepository.getMax().orElse(0L) + 1L;
+        //long id = paisRepository.getMax().orElse(0L) + 1L;
         paisEntity.setId(id);
-        LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
+        //LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
         
         return paisRepository.save(paisEntity);
     }
