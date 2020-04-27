@@ -10,8 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.eiv.entity.PaisEntity;
+import com.eiv.entity.QPaisEntity;
 import com.eiv.frm.PaisFrm;
 import com.eiv.repository.PaisRepository;
+import com.eiv.util.SerializationUtils;
 
 @Service
 public class PaisDas {
@@ -19,6 +21,7 @@ public class PaisDas {
     private static final Logger LOG = LoggerFactory.getLogger(PaisDas.class);
     
     @Autowired private PaisRepository paisRepository;
+    @Autowired private SequenceDas sequenceDas;
     
     @Transactional(readOnly = true)
     public List<PaisEntity> findAll() {
@@ -32,9 +35,13 @@ public class PaisDas {
     
     @Transactional
     public PaisEntity create(PaisFrm pais, long delay) {
+
+        QPaisEntity q = QPaisEntity.paisEntity;
+        byte[] serialized = SerializationUtils.serialize(q);
+        String seqId = SerializationUtils.extractKey(serialized);
+        LOG.info("BUSCANDO PARA ID (HASH) {}", seqId);
         
-        // long id = paisRepository.getMax().orElse(0L) + 1L;
-        // LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
+        long id = sequenceDas.nextValue(seqId);
         
         if (delay > 0) {
             try {
@@ -49,9 +56,15 @@ public class PaisDas {
         PaisEntity paisEntity = new PaisEntity();
         paisEntity.setNombre(pais.getNombre());
         
-        long id = paisRepository.getMax().orElse(0L) + 1L;
         paisEntity.setId(id);
         LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
+                
+        /*
+        JPAQuery<Long> query = new JPAQuery<Long>(em);
+        
+        QPaisEntity q = QPaisEntity.paisEntity;
+        long id = query.select(q.id.max()).from(q).fetchOne();
+        */
         
         return paisRepository.save(paisEntity);
     }

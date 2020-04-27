@@ -7,3 +7,7 @@ INSERT INTO provincias (pais_id, provincia_id, nombre) VALUES
 (1, 1, 'SANTA FE'),
 (1, 2, 'CORDOBA'),
 (1, 3, 'ENTRE RIOS');
+
+
+INSERT INTO sequence_table (query_id, ult_valor) VALUES
+('85a08f468db8047c23fd8b74d79362fa', 3);
