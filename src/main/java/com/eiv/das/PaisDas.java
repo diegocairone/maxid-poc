@@ -58,14 +58,7 @@ public class PaisDas {
         
         paisEntity.setId(id);
         LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
-                
-        /*
-        JPAQuery<Long> query = new JPAQuery<Long>(em);
-        
-        QPaisEntity q = QPaisEntity.paisEntity;
-        long id = query.select(q.id.max()).from(q).fetchOne();
-        */
-        
+            
         return paisRepository.save(paisEntity);
     }
 }

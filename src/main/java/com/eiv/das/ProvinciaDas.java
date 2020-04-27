@@ -1,6 +1,7 @@
 package com.eiv.das;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,17 @@ public class ProvinciaDas {
         LOG.info("BUSCANDO PARA PROVINCIA-ID (HASH) {}", seqId);
         
         long id = sequenceDas.nextValue(seqId);
-        
+
+        if (delay > 0) {
+            try {
+                LOG.info("X-DELAY {} - Comenzando ....", delay);
+                TimeUnit.SECONDS.sleep(delay);
+                LOG.info("X-DELAY {} - Terminado!!!", delay);
+            } catch (InterruptedException ex) {
+                LOG.error("DELAY ERROR: {}", ex);
+            } 
+        }
+           
         ProvinciaEntity provinciaEntity = new ProvinciaEntity(paisEntity, id);
         provinciaEntity.setNombre(provincia.getNombre());
         
