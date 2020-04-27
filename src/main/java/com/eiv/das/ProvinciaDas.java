@@ -44,8 +44,7 @@ public class ProvinciaDas {
                         String.format("No se encuentra un PAIS con ID %s", provincia.getPaisId())));
         
         QProvinciaEntity q = QProvinciaEntity.provinciaEntity;
-        byte[] serialized = SerializationUtils.serialize(q.pais.eq(paisEntity));
-        String seqId = SerializationUtils.extractKey(serialized);
+        String seqId = SerializationUtils.genKey(q.pais.eq(paisEntity));
         LOG.info("BUSCANDO PARA PROVINCIA-ID (HASH) {}", seqId);
         
         long id = sequenceDas.nextValue(seqId);

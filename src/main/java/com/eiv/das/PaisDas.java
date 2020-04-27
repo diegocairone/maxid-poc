@@ -37,8 +37,7 @@ public class PaisDas {
     public PaisEntity create(PaisFrm pais, long delay) {
 
         QPaisEntity q = QPaisEntity.paisEntity;
-        byte[] serialized = SerializationUtils.serialize(q);
-        String seqId = SerializationUtils.extractKey(serialized);
+        String seqId = SerializationUtils.genKey(q);
         LOG.info("BUSCANDO PARA PAIS-ID (HASH) {}", seqId);
         
         long id = sequenceDas.nextValue(seqId);

@@ -3,7 +3,6 @@ package com.eiv.util;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -34,28 +33,7 @@ public class SerializationUtils {
         }
     }
     
-    public static String extractKey(String value) {
-        if (value == null) {
-            return null;
-        }
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance("MD5");
-        }
-        catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("MD5 algorithm not available.  Fatal (should be in the JDK).");
-        }
-
-        try {
-            byte[] bytes = digest.digest(value.getBytes("UTF-8"));
-            return String.format("%032x", new BigInteger(1, bytes));
-        }
-        catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("UTF-8 encoding not available.  Fatal (should be in the JDK).");
-        }
-    }
-
-    public static String extractKey(byte[] value) {
+    public static String calcularHash(byte[] value) {
         if (value == null) {
             return null;
         }
@@ -69,5 +47,11 @@ public class SerializationUtils {
 
         byte[] bytes = digest.digest(value);
         return String.format("%032x", new BigInteger(1, bytes));
+    }
+    
+    public static String genKey(Object state) {
+        byte[] serialized = serialize(state);
+        String hashed = calcularHash(serialized);
+        return hashed;
     }
 }
