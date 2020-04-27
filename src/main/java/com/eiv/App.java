@@ -7,7 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import com.eiv.repository.PaisRepository;
+import com.eiv.repository.ProvinciaRepository;
 
 @SpringBootApplication
 public class App implements CommandLineRunner {
@@ -21,8 +21,8 @@ public class App implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         
-        paisRepository.findAll().forEach(p -> LOG.info("Pais: {}", p));
+        provinciaRepository.findAll().forEach(p -> LOG.info("Provincia: {}", p));
     }
 
-    @Autowired PaisRepository paisRepository;
+    @Autowired ProvinciaRepository provinciaRepository;
 }
