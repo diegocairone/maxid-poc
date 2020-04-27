@@ -30,11 +30,20 @@ public class PaisDas {
         return create(pais, 0);
     }
     
+    /**
+     * mysql usa por defecto el isolation lever REPEATABLE READ y h2 usa READ COMMITED
+     * 
+     * @see <a href="https://medium.com/@elliotchance/sql-transaction-isolation-levels-explained-50d1a2f90d8f">SQL Transaction Isolation Levels Explained</a>
+     * 
+     * @param pais
+     * @param delay
+     * @return
+     */
     @Transactional
     public PaisEntity create(PaisFrm pais, long delay) {
         
-        long id = paisRepository.getMax().orElse(0L) + 1L;
-        LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
+        //long id = paisRepository.getMax().orElse(0L) + 1L;
+        //LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
         
         if (delay > 0) {
             try {
@@ -49,9 +58,9 @@ public class PaisDas {
         PaisEntity paisEntity = new PaisEntity();
         paisEntity.setNombre(pais.getNombre());
         
-        //long id = paisRepository.getMax().orElse(0L) + 1L;
+        long id = paisRepository.getMax().orElse(0L) + 1L;
         paisEntity.setId(id);
-        //LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
+        LOG.info("MAX ID CALCULADO: {} PARA {}", id, pais.getNombre());
         
         return paisRepository.save(paisEntity);
     }
