@@ -11,33 +11,33 @@ public class ProvinciaPkEntity implements Serializable {
     private static final long serialVersionUID = -1840807291170697822L;
 
     @Column(name = "pais_id")
-    private long paisId;
+    private Long paisId;
     
     @Column(name = "provincia_id")
-    private long provinciaId;
+    private Long provinciaId;
     
     public ProvinciaPkEntity() {
     }
 
-    public ProvinciaPkEntity(long paisId, long provinciaId) {
+    public ProvinciaPkEntity(Long paisId, Long provinciaId) {
         super();
         this.paisId = paisId;
         this.provinciaId = provinciaId;
     }
 
-    public long getPaisId() {
+    public Long getPaisId() {
         return paisId;
     }
 
-    public void setPaisId(long paisId) {
+    public void setPaisId(Long paisId) {
         this.paisId = paisId;
     }
 
-    public long getProvinciaId() {
+    public Long getProvinciaId() {
         return provinciaId;
     }
 
-    public void setProvinciaId(long provinciaId) {
+    public void setProvinciaId(Long provinciaId) {
         this.provinciaId = provinciaId;
     }
 

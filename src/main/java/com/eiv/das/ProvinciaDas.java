@@ -11,11 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.eiv.entity.PaisEntity;
 import com.eiv.entity.ProvinciaEntity;
-import com.eiv.entity.QProvinciaEntity;
 import com.eiv.frm.ProvinciaFrm;
 import com.eiv.repository.PaisRepository;
 import com.eiv.repository.ProvinciaRepository;
-import com.eiv.util.SerializationUtils;
 
 @Service
 public class ProvinciaDas {
@@ -24,7 +22,6 @@ public class ProvinciaDas {
 
     @Autowired private PaisRepository paisRepository;
     @Autowired private ProvinciaRepository provinciaRepository;
-    @Autowired private SequenceDas sequenceDas;
     
     @Transactional(readOnly = true)
     public List<ProvinciaEntity> findAll() {
@@ -43,12 +40,6 @@ public class ProvinciaDas {
                 .orElseThrow(() -> new RuntimeException(
                         String.format("No se encuentra un PAIS con ID %s", provincia.getPaisId())));
         
-        QProvinciaEntity q = QProvinciaEntity.provinciaEntity;
-        String seqId = SerializationUtils.genKey(q.pais.eq(paisEntity));
-        LOG.info("BUSCANDO PARA PROVINCIA-ID (HASH) {}", seqId);
-        
-        long id = sequenceDas.nextValue(seqId);
-
         if (delay > 0) {
             try {
                 LOG.info("X-DELAY {} - Comenzando ....", delay);
@@ -59,11 +50,10 @@ public class ProvinciaDas {
             } 
         }
            
-        ProvinciaEntity provinciaEntity = new ProvinciaEntity(paisEntity, id);
+        ProvinciaEntity provinciaEntity = new ProvinciaEntity();
+        provinciaEntity.setPais(paisEntity);
         provinciaEntity.setNombre(provincia.getNombre());
         
-        provinciaRepository.save(provinciaEntity);
-        
-        return provinciaEntity;
+        return provinciaRepository.save(provinciaEntity);
     }
 }
