@@ -25,7 +25,8 @@ public class ProvinciaEntity {
             strategy = "com.eiv.util.HashKeyGenerator",
             parameters = { 
                     @Parameter(name = HashKeyGenerator.COMPOSITE_KEY, value = "true"),
-                    @Parameter(name = HashKeyGenerator.ID_FIELD, value = "provinciaId")})
+                    @Parameter(name = HashKeyGenerator.ID_FIELD, value = "provinciaId"),
+                    @Parameter(name = HashKeyGenerator.USE_HASH, value = "true")})
     private ProvinciaPkEntity pk;
     
     @ManyToOne(fetch = FetchType.LAZY)

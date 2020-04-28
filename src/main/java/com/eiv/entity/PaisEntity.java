@@ -25,7 +25,8 @@ public class PaisEntity implements Serializable {
             strategy = "com.eiv.util.HashKeyGenerator",
             parameters = { 
                     @Parameter(name = HashKeyGenerator.COMPOSITE_KEY, value = "false"),
-                    @Parameter(name = HashKeyGenerator.ID_FIELD, value = "id")})
+                    @Parameter(name = HashKeyGenerator.ID_FIELD, value = "id"),
+                    @Parameter(name = HashKeyGenerator.USE_HASH, value = "true")})
     private long id;
     
     private String nombre;

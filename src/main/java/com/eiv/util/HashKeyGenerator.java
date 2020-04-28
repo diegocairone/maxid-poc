@@ -1,6 +1,7 @@
 package com.eiv.util;
 
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
@@ -26,17 +27,20 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
 
     public static final String COMPOSITE_KEY = "compositeKey";
     public static final String ID_FIELD = "idField";
+    public static final String USE_HASH = "useHash";
     
     private boolean isCompositeKey;
     private String idField;
     private String capitalizedIdField;
     private Type identifierType;
+    private boolean useHash;
     
     @Override
     public void configure(
             Type type, Properties params, ServiceRegistry serviceRegistry) throws MappingException {
         
         this.isCompositeKey = "true".equals(params.getProperty(COMPOSITE_KEY));
+        this.useHash = "true".equals(params.getProperty(USE_HASH));
         this.idField = params.getProperty(ID_FIELD);
         this.identifierType = type;
         this.capitalizedIdField = idField == null || idField.isEmpty() ? idField 
@@ -59,9 +63,13 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         
         Table table = object.getClass().getAnnotation(Table.class);
         String tableName = table.name();
-        Long ultValor = ultValor(tableName, session);
         
-        return ultValor;
+        try {
+            Long ultValor = ultValor(tableName, session);
+            return ultValor;
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
     
     private Serializable compositeKey(
@@ -72,9 +80,10 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         String tableName = table.name();
 
         String keyName = compositeKeyName(tableName, object);
-        Long ultValor = ultValor(keyName, session);
         
         try {
+            Long ultValor = ultValor(keyName, session);
+            
             Serializable pk = extractPkField(object);
             Class<?> type = pk.getClass().getDeclaredField(idField).getType();
             pk.getClass().getMethod("set" + capitalizedIdField, type).invoke(pk, ultValor);
@@ -84,19 +93,24 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
             return pk;
             
         } catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException 
-                | NoSuchMethodException | SecurityException | NoSuchFieldException e) {
+                | NoSuchMethodException | SecurityException | NoSuchFieldException 
+                | UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }
     
-    private Long ultValor(String keyName, SharedSessionContractImplementor session) {
+    private Long ultValor(String keyName, SharedSessionContractImplementor session) 
+            throws UnsupportedEncodingException {
 
+        String key = useHash 
+                ? SerializationUtils.calcularHash(keyName.getBytes("UTF-8")) : keyName;
+        
         String query = "SELECT ult_valor FROM sequence_table WHERE query_id = ?";
         Connection conn = session.connection();
         
         try {
             PreparedStatement stmtSelect = conn.prepareStatement(query);
-            stmtSelect.setString(1, keyName);
+            stmtSelect.setString(1, key);
             
             ResultSet rs = stmtSelect.executeQuery();
             long ultValor = 0;
@@ -113,7 +127,7 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
                 String insert = "INSERT INTO sequence_table (query_id, ult_valor) VALUES (?, ?)";
                 
                 PreparedStatement stmtInsert = conn.prepareStatement(insert);
-                stmtInsert.setString(1, keyName);
+                stmtInsert.setString(1, key);
                 stmtInsert.setLong(2, ultValor);
                 
                 stmtInsert.executeUpdate();
@@ -126,7 +140,7 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
                 
                 PreparedStatement stmtUpdate = conn.prepareStatement(update);
                 stmtUpdate.setLong(1, ultValor);
-                stmtUpdate.setString(2, keyName);
+                stmtUpdate.setString(2, key);
                 
                 stmtUpdate.executeUpdate();
                 stmtUpdate.close();
