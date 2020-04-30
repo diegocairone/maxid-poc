@@ -52,8 +52,8 @@ public class PaisCtrl {
                 
                 PaisEntity paisEntity = paisDas.create(pais, delay);
                 
-                LOG.info("Pais - doInTransaction: haciendo rollback");
-                status.setRollbackOnly();
+                //LOG.info("Pais - doInTransaction: haciendo rollback");
+                //status.setRollbackOnly();
                 
                 return paisEntity;
             }

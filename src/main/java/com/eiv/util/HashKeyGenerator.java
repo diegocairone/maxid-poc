@@ -9,8 +9,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.persistence.Column;
@@ -19,9 +20,13 @@ import javax.transaction.Status;
 import javax.transaction.Synchronization;
 
 import org.hibernate.HibernateException;
+import org.hibernate.LockMode;
+import org.hibernate.LockOptions;
 import org.hibernate.MappingException;
 import org.hibernate.Transaction;
+import org.hibernate.dialect.Dialect;
 import org.hibernate.engine.jdbc.connections.spi.JdbcConnectionAccess;
+import org.hibernate.engine.jdbc.env.spi.JdbcEnvironment;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.Configurable;
 import org.hibernate.id.IdentifierGenerator;
@@ -47,6 +52,10 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
     private Type identifierType;
     private boolean useHash;
     
+    private String selectQuery;
+    private String updateQuery;
+    private String insertQuery;
+    
     @Override
     public void configure(
             Type type, Properties params, ServiceRegistry serviceRegistry) throws MappingException {
@@ -57,6 +66,28 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         this.identifierType = type;
         this.capitalizedIdField = idField == null || idField.isEmpty() ? idField 
                 : idField.substring(0, 1).toUpperCase() + idField.substring(1);
+        
+        JdbcEnvironment jdbcEnvironment = serviceRegistry.getService(JdbcEnvironment.class);
+        Dialect dialect = jdbcEnvironment.getDialect();
+        
+        registerExportables(dialect);
+    }
+    
+    private void registerExportables(Dialect dialect) {
+        
+        String select = "SELECT ult_valor FROM sequence_table WHERE query_id = ?";
+        
+        LockOptions lockOptions = new LockOptions(LockMode.PESSIMISTIC_WRITE);
+        lockOptions.setAliasSpecificLockMode("tbl", LockMode.PESSIMISTIC_WRITE);
+        
+        Map<String, String[]> updateTargetColumnsMap = Collections.singletonMap(
+                "tbl", new String[] { "ult_valor" });
+        
+        selectQuery = dialect.applyLocksToSql(select, lockOptions, updateTargetColumnsMap);
+        
+        updateQuery = "UPDATE sequence_table SET ult_valor = ? WHERE query_id = ?";
+        
+        insertQuery = "INSERT INTO sequence_table (query_id, ult_valor) VALUES (?, ?)";
     }
 
     @Override
@@ -105,8 +136,8 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
                             LOG.info("Generador de ID - ROLLBACKt!");
                             connection.rollback();
                         }
-                        //connection.setAutoCommit(true);
-                        //connectionAccess.releaseConnection(connection);
+                        connection.setAutoCommit(true);
+                        connectionAccess.releaseConnection(connection);
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
@@ -161,7 +192,7 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         }
     }
     
-    private static boolean delay = true;
+    //private static boolean delay = true;
     
     private Long ultValor(String keyName, Connection conn) 
             throws UnsupportedEncodingException {
@@ -169,12 +200,11 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         String key = useHash 
                 ? SerializationUtils.calcularHash(keyName.getBytes("UTF-8")) : keyName;
         
-        String query = "SELECT ult_valor FROM sequence_table WHERE query_id = ? FOR UPDATE";
-        
         try {
             conn.setAutoCommit(false);
             
-            PreparedStatement stmtSelect = conn.prepareStatement(query);
+            LOG.info("Query SELECT: {}", selectQuery);
+            PreparedStatement stmtSelect = conn.prepareStatement(selectQuery);
             stmtSelect.setString(1, key);
             
             ResultSet rs = stmtSelect.executeQuery();
@@ -198,9 +228,9 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
             if (ultValor == 0) {
                 
                 ultValor++;
-                String insert = "INSERT INTO sequence_table (query_id, ult_valor) VALUES (?, ?)";
-                
-                PreparedStatement stmtInsert = conn.prepareStatement(insert);
+
+                LOG.debug("Query INSERT para actualizar secuencia: {}", insertQuery);
+                PreparedStatement stmtInsert = conn.prepareStatement(insertQuery);
                 stmtInsert.setString(1, key);
                 stmtInsert.setLong(2, ultValor);
                 
@@ -210,9 +240,9 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
             } else {
                 
                 ultValor++;
-                String update = "UPDATE sequence_table SET ult_valor = ? WHERE query_id = ?";
                 
-                PreparedStatement stmtUpdate = conn.prepareStatement(update);
+                LOG.info("Query UPDATE para actualizar secuencia: {}", updateQuery);
+                PreparedStatement stmtUpdate = conn.prepareStatement(updateQuery);
                 stmtUpdate.setLong(1, ultValor);
                 stmtUpdate.setString(2, key);
                 
@@ -220,18 +250,16 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
                 stmtUpdate.close();
             }
             
-            conn.commit();
-            
             return ultValor;
             
         } catch (SQLException e) {
-            //try {
-            //    if (!conn.isClosed()) {
-            //        conn.rollback();
-            //    }
-            //} catch (SQLException e2) {
-            //    throw new RuntimeException(e2);
-            //}
+            try {
+                if (!conn.isClosed()) {
+                    conn.rollback();
+                }
+            } catch (SQLException e2) {
+                throw new RuntimeException(e2);
+            }
             throw new RuntimeException(e);
         }
     }

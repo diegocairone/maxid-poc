@@ -2,6 +2,7 @@ package com.eiv.entity;
 
 import java.io.Serializable;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
@@ -29,6 +30,7 @@ public class PaisEntity implements Serializable {
                     @Parameter(name = HashKeyGenerator.USE_HASH, value = "true")})
     private long id;
     
+    @Column(unique = true)
     private String nombre;
     
     public PaisEntity() {
