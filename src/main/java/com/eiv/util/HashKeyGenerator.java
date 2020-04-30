@@ -30,6 +30,7 @@ import org.hibernate.engine.jdbc.env.spi.JdbcEnvironment;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.Configurable;
 import org.hibernate.id.IdentifierGenerator;
+import org.hibernate.internal.util.config.ConfigurationHelper;
 import org.hibernate.jdbc.AbstractReturningWork;
 import org.hibernate.jdbc.WorkExecutor;
 import org.hibernate.jdbc.WorkExecutorVisitable;
@@ -46,11 +47,19 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
     public static final String ID_FIELD = "idField";
     public static final String USE_HASH = "useHash";
     
+    public static final String GEN_TBL_NAME = "genTblName";
+    public static final String GEN_KEY_NAME = "genKeyName";
+    public static final String GEN_VALUE_NAME = "genValueName";
+    
     private boolean isCompositeKey;
     private String idField;
     private String capitalizedIdField;
     private Type identifierType;
     private boolean useHash;
+    
+    private String genTblName;
+    private String genKeyName;
+    private String genValueName;
     
     private String selectQuery;
     private String updateQuery;
@@ -67,6 +76,10 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         this.capitalizedIdField = idField == null || idField.isEmpty() ? idField 
                 : idField.substring(0, 1).toUpperCase() + idField.substring(1);
         
+        this.genTblName = ConfigurationHelper.getString(GEN_TBL_NAME, params, "sequence_table");
+        this.genKeyName = ConfigurationHelper.getString(GEN_KEY_NAME, params, "query_id");
+        this.genValueName = ConfigurationHelper.getString(GEN_VALUE_NAME, params, "ult_valor");
+        
         JdbcEnvironment jdbcEnvironment = serviceRegistry.getService(JdbcEnvironment.class);
         Dialect dialect = jdbcEnvironment.getDialect();
         
@@ -75,7 +88,8 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
     
     private void registerExportables(Dialect dialect) {
         
-        String select = "SELECT ult_valor FROM sequence_table WHERE query_id = ?";
+        String select = String.format(
+                "SELECT %s FROM %s WHERE %s = ?", genValueName, genTblName, genKeyName);
         
         LockOptions lockOptions = new LockOptions(LockMode.PESSIMISTIC_WRITE);
         lockOptions.setAliasSpecificLockMode("tbl", LockMode.PESSIMISTIC_WRITE);
@@ -85,9 +99,11 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         
         selectQuery = dialect.applyLocksToSql(select, lockOptions, updateTargetColumnsMap);
         
-        updateQuery = "UPDATE sequence_table SET ult_valor = ? WHERE query_id = ?";
+        updateQuery = String.format(
+                "UPDATE %s SET %s = ? WHERE %s = ?", genTblName, genValueName, genKeyName);
         
-        insertQuery = "INSERT INTO sequence_table (query_id, ult_valor) VALUES (?, ?)";
+        insertQuery = String.format(
+                "INSERT INTO %s (%s, %s) VALUES (?, ?)", genTblName, genKeyName, genValueName);
     }
 
     @Override
