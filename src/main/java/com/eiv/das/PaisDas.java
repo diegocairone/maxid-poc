@@ -44,6 +44,7 @@ public class PaisDas {
         }
                 
         PaisEntity paisEntity = new PaisEntity();
+        paisEntity.setId(pais.getId());
         paisEntity.setNombre(pais.getNombre());
             
         return paisRepository.save(paisEntity);

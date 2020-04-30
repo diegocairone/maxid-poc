@@ -146,10 +146,8 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
                     LOG.info("Generador de ID - AfterCompletion: {}", status);
                     try {
                         if (Status.STATUS_COMMITTED == status) {
-                            LOG.info("Generador de ID - Commit!");
                             connection.commit();
                         } else {
-                            LOG.info("Generador de ID - ROLLBACKt!");
                             connection.rollback();
                         }
                         connection.setAutoCommit(true);
@@ -174,9 +172,11 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         String tableName = table.name();
         
         try {
-            Long ultValor = ultValor(tableName, connection);
+            Long idUser = readIdField(object);
+            Long ultValor = ultValor(tableName, connection, idUser);
             return ultValor;
-        } catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException | IllegalArgumentException 
+                | IllegalAccessException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
             throw new RuntimeException(e);
         }
     }
@@ -191,9 +191,11 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         String keyName = compositeKeyName(tableName, object);
         
         try {
-            Long ultValor = ultValor(keyName, connection);
-            
             Serializable pk = extractPkField(object);
+            
+            Long idUser = readIdField(pk);
+            Long ultValor = ultValor(keyName, connection, idUser);
+            
             Class<?> type = pk.getClass().getDeclaredField(idField).getType();
             pk.getClass().getMethod("set" + capitalizedIdField, type).invoke(pk, ultValor);
         
@@ -210,7 +212,7 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
     
     //private static boolean delay = true;
     
-    private Long ultValor(String keyName, Connection conn) 
+    private Long ultValor(String keyName, Connection conn, Long idUser) 
             throws UnsupportedEncodingException {
 
         String key = useHash 
@@ -219,7 +221,7 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         try {
             conn.setAutoCommit(false);
             
-            LOG.info("Query SELECT: {}", selectQuery);
+            LOG.debug("Query SELECT: {}", selectQuery);
             PreparedStatement stmtSelect = conn.prepareStatement(selectQuery);
             stmtSelect.setString(1, key);
             
@@ -240,10 +242,14 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
             }
             */
             stmtSelect.close();
-            
-            if (ultValor == 0) {
-                
+
+            if (idUser == null || idUser == 0 || idUser.compareTo(ultValor) < 0) {
                 ultValor++;
+            } else {
+                ultValor = idUser;
+            }
+                        
+            if (ultValor == 0) {
 
                 LOG.debug("Query INSERT para actualizar secuencia: {}", insertQuery);
                 PreparedStatement stmtInsert = conn.prepareStatement(insertQuery);
@@ -254,8 +260,6 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
                 stmtInsert.close();
             
             } else {
-                
-                ultValor++;
                 
                 LOG.info("Query UPDATE para actualizar secuencia: {}", updateQuery);
                 PreparedStatement stmtUpdate = conn.prepareStatement(updateQuery);
@@ -328,6 +332,21 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         }
         
         return pk;
+    }
+    
+    private Long readIdField(Object object) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, SecurityException {
+        
+        Field[] fields = object.getClass().getDeclaredFields();
+        
+        for (Field field : fields) {
+            if (field.getName().equals(idField)) {
+                String getterName = "get" + field.getName().substring(0, 1).toUpperCase() + field.getName().substring(1);
+                Long value = (Long) object.getClass().getMethod(getterName).invoke(object);
+                return value;
+            }
+        }
+        
+        return null;
     }
 
     private void updateIdField(Object object, Serializable pk, Long ultValor) 

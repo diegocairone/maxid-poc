@@ -51,6 +51,7 @@ public class ProvinciaDas {
         }
            
         ProvinciaEntity provinciaEntity = new ProvinciaEntity();
+        provinciaEntity.setId(provincia.getId());
         provinciaEntity.setPais(paisEntity);
         provinciaEntity.setNombre(provincia.getNombre());
         

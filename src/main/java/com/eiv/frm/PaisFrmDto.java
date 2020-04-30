@@ -2,8 +2,18 @@ package com.eiv.frm;
 
 public class PaisFrmDto implements PaisFrm {
 
+    private long id;
     private String nombre;
     
+    @Override
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
     @Override
     public String getNombre() {
         return nombre;

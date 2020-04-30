@@ -2,13 +2,21 @@ package com.eiv.frm;
 
 public class ProvinciaFrmDto implements ProvinciaFrm {
 
+    private long id;
     private long paisId;
-    
     private String nombre;
     
     public ProvinciaFrmDto() {
     }
     
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        this.id = id;
+    }
+
     public void setPaisId(long paisId) {
         this.paisId = paisId;
     }
@@ -26,5 +34,4 @@ public class ProvinciaFrmDto implements ProvinciaFrm {
     public String getNombre() {
         return nombre;
     }
-
 }
