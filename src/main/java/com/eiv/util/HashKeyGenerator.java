@@ -30,9 +30,13 @@ import org.hibernate.jdbc.WorkExecutor;
 import org.hibernate.jdbc.WorkExecutorVisitable;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.type.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HashKeyGenerator implements IdentifierGenerator, Configurable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(HashKeyGenerator.class);
+    
     public static final String COMPOSITE_KEY = "compositeKey";
     public static final String ID_FIELD = "idField";
     public static final String USE_HASH = "useHash";
@@ -92,15 +96,17 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
                 
                 @Override
                 public void afterCompletion(int status) {
+                    LOG.info("Generador de ID - AfterCompletion: {}", status);
                     try {
                         if (Status.STATUS_COMMITTED == status) {
+                            LOG.info("Generador de ID - Commit!");
                             connection.commit();
-                                
                         } else {
+                            LOG.info("Generador de ID - ROLLBACKt!");
                             connection.rollback();
                         }
-                        connection.setAutoCommit(true);
-                        connectionAccess.releaseConnection(connection);
+                        //connection.setAutoCommit(true);
+                        //connectionAccess.releaseConnection(connection);
                     } catch (SQLException e) {
                         throw new RuntimeException(e);
                     }
@@ -177,7 +183,7 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
             if (rs.next()) {
                 ultValor = rs.getLong(1);
             }
-            
+            /*
             try {
                 if (delay) {
                     delay = !delay;
@@ -186,7 +192,7 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            
+            */
             stmtSelect.close();
             
             if (ultValor == 0) {
