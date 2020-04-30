@@ -6,6 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -25,6 +29,8 @@ public class PaisCtrl {
     
     @Autowired private PaisDas paisDas;
     
+    @Autowired private PlatformTransactionManager tm;
+    
     @GetMapping("/")
     public ResponseEntity<List<PaisEntity>> listar() {
         List<PaisEntity> paisEntities = paisDas.findAll();
@@ -36,7 +42,21 @@ public class PaisCtrl {
             @RequestBody PaisFrmDto pais, 
             @RequestHeader(value = "x-delay", required = false, defaultValue = "0") long delay) {
         LOG.info("Header X-DELAY: {}", delay);
-        PaisEntity paisEntity = paisDas.create(pais, delay);
+        
+        TransactionTemplate template = new TransactionTemplate(tm);
+        
+        PaisEntity paisEntity = template.execute(new TransactionCallback<PaisEntity>() {
+
+            @Override
+            public PaisEntity doInTransaction(TransactionStatus status) {
+                
+                PaisEntity paisEntity = paisDas.create(pais, delay);
+                status.setRollbackOnly();
+                
+                return paisEntity;
+            }
+        });
+        
         return ResponseEntity.ok(paisEntity);
     }
 }
