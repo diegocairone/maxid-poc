@@ -210,14 +210,14 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
         }
     }
     
-    //private static boolean delay = true;
-    
     private Long ultValor(String keyName, Connection conn, Long idUser) 
             throws UnsupportedEncodingException {
 
         String key = useHash 
                 ? SerializationUtils.calcularHash(keyName.getBytes("UTF-8")) : keyName;
         
+        idUser = idUser < 1L ? null : idUser;
+                
         try {
             conn.setAutoCommit(false);
             
@@ -227,30 +227,47 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
             
             ResultSet rs = stmtSelect.executeQuery();
             long ultValor = 0;
+            boolean exist = false;
             
             if (rs.next()) {
                 ultValor = rs.getLong(1);
+                exist = true;
             }
-            /*
-            try {
-                if (delay) {
-                    delay = !delay;
-                    TimeUnit.SECONDS.sleep(5);
-                }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            */
+            
             stmtSelect.close();
+            
+            if (exist) {
 
-            if (idUser == null || idUser == 0 || idUser.compareTo(ultValor) < 0) {
-                ultValor++;
+                boolean doUpdate = true;
+                
+                if (idUser != null && idUser > ultValor) {
+                    ultValor = idUser;
+                } else if (idUser == null) {
+                    ultValor++;
+                } else {
+                    doUpdate = false;
+                    ultValor = idUser;
+                }
+                    
+                if (doUpdate) {
+                    
+                    LOG.info("Query UPDATE para actualizar secuencia: {}", updateQuery);
+                    PreparedStatement stmtUpdate = conn.prepareStatement(updateQuery);
+                    stmtUpdate.setLong(1, ultValor);
+                    stmtUpdate.setString(2, key);
+                    
+                    stmtUpdate.executeUpdate();
+                    stmtUpdate.close();
+                }
+                
             } else {
-                ultValor = idUser;
-            }
-                        
-            if (ultValor == 0) {
 
+                if (idUser == null) {
+                    ultValor++;
+                } else {
+                    ultValor = idUser;
+                }
+                
                 LOG.debug("Query INSERT para actualizar secuencia: {}", insertQuery);
                 PreparedStatement stmtInsert = conn.prepareStatement(insertQuery);
                 stmtInsert.setString(1, key);
@@ -258,18 +275,8 @@ public class HashKeyGenerator implements IdentifierGenerator, Configurable {
                 
                 stmtInsert.executeUpdate();
                 stmtInsert.close();
-            
-            } else {
-                
-                LOG.info("Query UPDATE para actualizar secuencia: {}", updateQuery);
-                PreparedStatement stmtUpdate = conn.prepareStatement(updateQuery);
-                stmtUpdate.setLong(1, ultValor);
-                stmtUpdate.setString(2, key);
-                
-                stmtUpdate.executeUpdate();
-                stmtUpdate.close();
             }
-            
+                        
             return ultValor;
             
         } catch (SQLException e) {
